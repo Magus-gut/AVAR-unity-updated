@@ -1,6 +1,9 @@
 ﻿using UnityEngine;
 using UnityEngine.XR.WSA.Input;
 
+//NEW IN AVAR UPDATED
+using UnityEngine.XR.Interaction.Toolkit;
+
 public class Fitbox : MonoBehaviour
 {
     [Tooltip("The collection of holograms to show when the Fitbox is dismissed.")]
@@ -21,7 +24,6 @@ public class Fitbox : MonoBehaviour
     private float Distance = 2.0f;
 
     private Interpolator interpolator;
-    private GestureRecognizer recognizer;
     private bool isInitialized = false;
 
     private void Awake()
@@ -40,57 +42,11 @@ public class Fitbox : MonoBehaviour
                 collectionStartingOffsetFromCamera = HologramCollection.transform.localPosition;
                 HologramCollection.SetActive(false);
             }
-
-            // Set up our GestureRecognizer to listen for the SelectEvent
-            recognizer = new GestureRecognizer();
-            recognizer.Tapped += (args) =>
-            {
-                DismissFitbox();
-            };
-            recognizer.StartCapturingGestures();
-        }
-    }
-
-    private void DismissFitbox()
-    {
-        // Destroy the GestureRecognizer ...
-        recognizer.CancelGestures();
-        recognizer.StopCapturingGestures();
-        recognizer.Dispose();
-        recognizer = null;
-
-        // ... show the hologram collection ...
-        if (HologramCollection)
-        {
-            HologramCollection.SetActive(true);
-
-            if (MoveCollectionOnDismiss)
-            {
-                // Update the Hologram Collection's position so it shows up
-                // where the Fitbox left off. Start with the camera's localRotation...
-                Quaternion camQuat = Camera.main.transform.localRotation;
-
-                // ... ignore pitch by disabling rotation around the x axis
-                camQuat.x = 0;
-
-                // Rotate the vector and factor y back into the position
-                Vector3 newPosition = camQuat * collectionStartingOffsetFromCamera;
-                newPosition.y = collectionStartingOffsetFromCamera.y;
-
-                // Position was "Local Position" so add that to where the camera is now
-                HologramCollection.transform.position = Camera.main.transform.position + newPosition;
-
-                // Rotate the Hologram Collection to face the user.
-                Quaternion toQuat = Camera.main.transform.localRotation * HologramCollection.transform.rotation;
-                toQuat.x = 0;
-                toQuat.z = 0;
-                HologramCollection.transform.rotation = toQuat;
-            }
         }
 
-        // ... and Destroy the Fitbox
-        Destroy(gameObject);
     }
+    
+    
 
     private void Start()
     {
@@ -101,6 +57,52 @@ public class Fitbox : MonoBehaviour
 
         // Screen-lock the Fitbox to match the OOBE Fitbox experience
         interpolator.PositionPerSecond = 0.0f;
+        
+        // NEW IN AVAR D
+        // Search for an XR Ray Interactor in the scene to manage tap
+        var rayInteractor = FindObjectOfType<XRRayInteractor>();
+        if (rayInteractor != null)
+        {
+            rayInteractor.selectEntered.AddListener(OnRayInteractorSelectEntered);
+        }
+        else
+        {
+            Debug.LogWarning("No se encontró un XR Ray Interactor en la escena. Asegúrate de tener uno configurado.");
+        }
+    }
+    
+    private void DismissFitbox()
+    {
+        // Show hologram collection
+        if (HologramCollection)
+        {
+            HologramCollection.SetActive(true);
+
+            if (MoveCollectionOnDismiss)
+            {
+                Quaternion camQuat = Camera.main.transform.localRotation;
+                camQuat.x = 0;
+                Vector3 newPosition = camQuat * collectionStartingOffsetFromCamera;
+                newPosition.y = collectionStartingOffsetFromCamera.y;
+                HologramCollection.transform.position = Camera.main.transform.position + newPosition;
+
+                Quaternion toQuat = Camera.main.transform.localRotation * HologramCollection.transform.rotation;
+                toQuat.x = 0;
+                toQuat.z = 0;
+                HologramCollection.transform.rotation = toQuat;
+            }
+        }
+
+        // Destroy Fitbox
+        Destroy(gameObject);
+    }
+    private void OnRayInteractorSelectEntered(SelectEnterEventArgs args)
+    {
+        // Vertify if selected object is the Fitbox
+        if (args.interactableObject.transform == transform)
+        {
+            DismissFitbox();
+        }
     }
 
     private void InitializeComponents()

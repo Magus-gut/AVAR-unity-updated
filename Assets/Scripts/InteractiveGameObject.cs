@@ -97,6 +97,14 @@ public class InteractiveGameObject : NavigationReactor
 
     }
 
+    //NEW IN AVAR UPDATED ############# Use this for new logic stuff
+    public void OnHold(Vector3 handPosition)
+    {
+        Debug.Log("OnHold is being called. Hand position: " + handPosition);
+    }
+    
+    
+    // ################################
 
 
     private void rotate()
